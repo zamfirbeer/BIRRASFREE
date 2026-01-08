@@ -35,16 +35,8 @@
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
 
-      // 🔥 hacemos Firestore global
       window.db = db;
-      window.fb = {
-        collection,
-        getDocs,
-        addDoc,
-        deleteDoc,
-        doc,
-        updateDoc
-      };
+      window.fb = { collection, getDocs, addDoc, deleteDoc, doc, updateDoc };
     </script>
 
     <script type="text/babel">
@@ -99,11 +91,11 @@
             imagen: ''
           });
 
+          // Cargar cervezas al iniciar
           useEffect(() => {
             const loadBeers = async () => {
               const snapshot = await window.fb.getDocs(window.fb.collection(window.db, "beers"));
-              const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-              setBeers(data);
+              setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
             };
             loadBeers();
           }, []);
@@ -137,7 +129,6 @@
               await window.fb.addDoc(window.fb.collection(window.db, "beers"), formData);
             }
 
-            // 🔄 recargar cervezas
             const snapshot = await window.fb.getDocs(window.fb.collection(window.db, "beers"));
             setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
 
@@ -150,7 +141,7 @@
           };
 
           const handleEdit = (beer) => {
-            setFormData({ ...beer }); // incluye todos los campos
+            setFormData({ ...beer });
             setEditingId(beer.id);
             setShowForm(true);
           };
@@ -204,19 +195,85 @@
             const url = URL.createObjectURL(dataBlob);
             const link = document.createElement('a');
             link.href=url; link.download='mis_cervezas.json';
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             URL.revokeObjectURL(url);
           };
 
           return (
             <div className="min-h-screen bg-amber-50 p-4">
-              {/* ...todo tu JSX sigue igual, no cambia... */}
-            </div>
-          );
-        }
+              <div className="max-w-7xl mx-auto">
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                    <h1 className="text-3xl font-bold text-amber-800">🍺 Mi Colección de Cervezas</h1>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-amber-700 transition">
+                        <PlusIcon /> {showForm ? 'Cancelar' : 'Agregar'}
+                      </button>
+                      <button onClick={downloadData} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition">
+                        <DownloadIcon /> Exportar
+                      </button>
+                    </div>
+                  </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<BeerDatabase />);
-    </script>
-</body>
-</html>
+                  {showForm && (
+                    <div className="mb-6 bg-amber-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Nombre *" className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+                        <input type="text" name="tipo" value={formData.tipo} onChange={handleInputChange} placeholder="Tipo (IPA, Lager, Stout...) *" className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+                        <input type="text" name="nacionalidad" value={formData.nacionalidad} onChange={handleInputChange} placeholder="Nacionalidad *" className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+                        <input type="text" name="color" value={formData.color} onChange={handleInputChange} placeholder="Color (Rubia, Negra, Tostada...) *" className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+                        <input type="number" name="puntuacion" value={formData.puntuacion} onChange={handleInputChange} placeholder="Puntuación (1-10) *" min="1" max="10" step="0.1" className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"/>
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer bg-amber-200 px-4 py-2 rounded hover:bg-amber-300 flex items-center gap-2 transition">
+                            📷 Subir Foto
+                            <input type="file" accept="image/*" onChange={handleImageChange} className="hidden"/>
+                          </label>
+                          {formData.imagen && <span className="text-sm text-green-600 font-semibold">✓ Foto cargada</span>}
+                        </div>
+                      </div>
+                      <textarea name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones" className="border border-amber-300 rounded px-3 py-2 w-full mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500" rows="3"/>
+                      <button onClick={handleSubmit} className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition font-semibold">
+                        {editingId ? 'Actualizar' : 'Guardar'} Cerveza
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-amber-800 mb-2">🔍 Buscador SQL</h2>
+                    <div className="flex gap-2 flex-wrap">
+                      <input type="text" value={sqlQuery} onChange={(e) => setSqlQuery(e.target.value)} placeholder="WHERE tipo LIKE '%IPA%' ORDER BY puntuacion DESC" className="flex-1 min-w-[200px] border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" onKeyPress={(e) => e.key === 'Enter' && executeSQLQuery()}/>
+                      <button onClick={executeSQLQuery} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"><SearchIcon /> Buscar</button>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Ejemplos: <code className="bg-gray-100 px-1 rounded">WHERE tipo = "IPA"</code> | <code className="bg-gray-100 px-1 rounded">WHERE puntuacion &gt; 8</code> | <code className="bg-gray-100 px-1 rounded">WHERE nacionalidad LIKE "%España%" ORDER BY puntuacion DESC</code>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredBeers.map(beer => (
+                    <div key={beer.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-xl transition-shadow">
+                      {beer.imagen && <img src={beer.imagen} alt={beer.nombre} className="w-full h-48 object-contain mb-3 rounded bg-gray-50"/>}
+                      <h3 className="text-xl font-bold text-amber-800 mb-2">{beer.nombre}</h3>
+                      <div className="space-y-1 text-sm mb-3">
+                        <p><span className="font-semibold text-amber-700">Tipo:</span> {beer.tipo}</p>
+                        <p><span className="font-semibold text-amber-700">Nacionalidad:</span> {beer.nacionalidad}</p>
+                        <p><span className="font-semibold text-amber-700">Color:</span> {beer.color}</p>
+                        <p><span className="font-semibold text-amber-700">Puntuación:</span> <span className="text-lg">⭐ {beer.puntuacion}/10</span></p>
+                        {beer.observaciones && <p className="text-gray-600 italic mt-2 pt-2 border-t border-gray-200">"{beer.observaciones}"</p>}
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => handleEdit(beer)} className="flex-1 bg-blue-500 text-white px-3 py-2 rounded flex items-center justify-center gap-1 hover:bg-blue-600 transition"><EditIcon /> Editar</button>
+                        <button onClick={() => handleDelete(beer.id)} className="flex-1 bg-red-500 text-white px-3 py-2 rounded flex items-center justify-center gap-1 hover:bg-red-600 transition"><TrashIcon /> Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredBeers.length === 0 && (
+                  <div className="text-center py-16 text-gray-500">
+                    <div className="text-6xl mb-4">🍺</div>
+                    <p className="text-xl font-semibold mb-2">
+                      {beers.length === 0 ? "Tu colección está
