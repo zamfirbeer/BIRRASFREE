@@ -4,18 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Colección de Cervezas</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div id="root"></div>
     
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const { Plus, Search, Download, Trash2, Edit2 } = lucide;
+
+        // Iconos SVG inline
+        const PlusIcon = () => (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        );
+
+        const SearchIcon = () => (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+        );
+
+        const DownloadIcon = () => (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        );
+
+        const EditIcon = () => (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        );
+
+        const TrashIcon = () => (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        );
 
         function BeerDatabase() {
           const [beers, setBeers] = useState([]);
@@ -34,15 +69,23 @@
           });
 
           useEffect(() => {
-            const savedBeers = localStorage.getItem('beers');
-            if (savedBeers) {
-              setBeers(JSON.parse(savedBeers));
+            try {
+              const savedBeers = localStorage.getItem('beers');
+              if (savedBeers) {
+                setBeers(JSON.parse(savedBeers));
+              }
+            } catch (e) {
+              console.error('Error cargando datos:', e);
             }
           }, []);
 
           useEffect(() => {
-            localStorage.setItem('beers', JSON.stringify(beers));
-            setFilteredBeers(beers);
+            try {
+              localStorage.setItem('beers', JSON.stringify(beers));
+              setFilteredBeers(beers);
+            } catch (e) {
+              console.error('Error guardando datos:', e);
+            }
           }, [beers]);
 
           const handleInputChange = (e) => {
@@ -191,16 +234,16 @@
                     <div className="flex gap-2">
                       <button
                         onClick={() => setShowForm(!showForm)}
-                        className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-amber-700"
+                        className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-amber-700 transition"
                       >
-                        <Plus size={20} />
+                        <PlusIcon />
                         {showForm ? 'Cancelar' : 'Agregar'}
                       </button>
                       <button
                         onClick={downloadData}
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700 transition"
                       >
-                        <Download size={20} />
+                        <DownloadIcon />
                         Exportar
                       </button>
                     </div>
@@ -215,7 +258,7 @@
                           value={formData.nombre}
                           onChange={handleInputChange}
                           placeholder="Nombre *"
-                          className="border border-amber-300 rounded px-3 py-2"
+                          className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                         <input
                           type="text"
@@ -223,7 +266,7 @@
                           value={formData.tipo}
                           onChange={handleInputChange}
                           placeholder="Tipo (IPA, Lager, Stout...) *"
-                          className="border border-amber-300 rounded px-3 py-2"
+                          className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                         <input
                           type="text"
@@ -231,7 +274,7 @@
                           value={formData.nacionalidad}
                           onChange={handleInputChange}
                           placeholder="Nacionalidad *"
-                          className="border border-amber-300 rounded px-3 py-2"
+                          className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                         <input
                           type="text"
@@ -239,7 +282,7 @@
                           value={formData.color}
                           onChange={handleInputChange}
                           placeholder="Color (Rubia, Negra, Tostada...) *"
-                          className="border border-amber-300 rounded px-3 py-2"
+                          className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                         <input
                           type="number"
@@ -250,10 +293,10 @@
                           min="1"
                           max="10"
                           step="0.1"
-                          className="border border-amber-300 rounded px-3 py-2"
+                          className="border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         />
                         <div className="flex items-center gap-2">
-                          <label className="cursor-pointer bg-amber-200 px-4 py-2 rounded hover:bg-amber-300 flex items-center gap-2">
+                          <label className="cursor-pointer bg-amber-200 px-4 py-2 rounded hover:bg-amber-300 flex items-center gap-2 transition">
                             📷 Subir Foto
                             <input
                               type="file"
@@ -262,7 +305,7 @@
                               className="hidden"
                             />
                           </label>
-                          {formData.imagen && <span className="text-sm text-green-600">✓ Foto cargada</span>}
+                          {formData.imagen && <span className="text-sm text-green-600 font-semibold">✓ Foto cargada</span>}
                         </div>
                       </div>
                       <textarea
@@ -270,12 +313,12 @@
                         value={formData.observaciones}
                         onChange={handleInputChange}
                         placeholder="Observaciones"
-                        className="border border-amber-300 rounded px-3 py-2 w-full mb-4"
+                        className="border border-amber-300 rounded px-3 py-2 w-full mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         rows="3"
                       />
                       <button
                         onClick={handleSubmit}
-                        className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800"
+                        className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800 transition font-semibold"
                       >
                         {editingId ? 'Actualizar' : 'Guardar'} Cerveza
                       </button>
@@ -290,51 +333,52 @@
                         value={sqlQuery}
                         onChange={(e) => setSqlQuery(e.target.value)}
                         placeholder="WHERE tipo LIKE '%IPA%' ORDER BY puntuacion DESC"
-                        className="flex-1 min-w-[200px] border border-amber-300 rounded px-3 py-2"
+                        className="flex-1 min-w-[200px] border border-amber-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        onKeyPress={(e) => e.key === 'Enter' && executeSQLQuery()}
                       />
                       <button
                         onClick={executeSQLQuery}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition"
                       >
-                        <Search size={20} />
+                        <SearchIcon />
                         Buscar
                       </button>
                     </div>
                     <p className="text-sm text-gray-600 mt-2">
-                      Ejemplos: WHERE tipo = "IPA" | WHERE puntuacion &gt; 8 | WHERE nacionalidad LIKE "%España%" ORDER BY puntuacion DESC
+                      Ejemplos: <code className="bg-gray-100 px-1 rounded">WHERE tipo = "IPA"</code> | <code className="bg-gray-100 px-1 rounded">WHERE puntuacion &gt; 8</code> | <code className="bg-gray-100 px-1 rounded">WHERE nacionalidad LIKE "%España%" ORDER BY puntuacion DESC</code>
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredBeers.map(beer => (
-                    <div key={beer.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                    <div key={beer.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-xl transition-shadow">
                       {beer.imagen && (
-                        <img src={beer.imagen} alt={beer.nombre} className="w-full h-48 object-contain mb-3 rounded" />
+                        <img src={beer.imagen} alt={beer.nombre} className="w-full h-48 object-contain mb-3 rounded bg-gray-50" />
                       )}
                       <h3 className="text-xl font-bold text-amber-800 mb-2">{beer.nombre}</h3>
                       <div className="space-y-1 text-sm mb-3">
-                        <p><span className="font-semibold">Tipo:</span> {beer.tipo}</p>
-                        <p><span className="font-semibold">Nacionalidad:</span> {beer.nacionalidad}</p>
-                        <p><span className="font-semibold">Color:</span> {beer.color}</p>
-                        <p><span className="font-semibold">Puntuación:</span> ⭐ {beer.puntuacion}/10</p>
+                        <p><span className="font-semibold text-amber-700">Tipo:</span> {beer.tipo}</p>
+                        <p><span className="font-semibold text-amber-700">Nacionalidad:</span> {beer.nacionalidad}</p>
+                        <p><span className="font-semibold text-amber-700">Color:</span> {beer.color}</p>
+                        <p><span className="font-semibold text-amber-700">Puntuación:</span> <span className="text-lg">⭐ {beer.puntuacion}/10</span></p>
                         {beer.observaciones && (
-                          <p className="text-gray-600 italic mt-2">{beer.observaciones}</p>
+                          <p className="text-gray-600 italic mt-2 pt-2 border-t border-gray-200">"{beer.observaciones}"</p>
                         )}
                       </div>
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={() => handleEdit(beer)}
-                          className="flex-1 bg-blue-500 text-white px-3 py-1 rounded flex items-center justify-center gap-1 hover:bg-blue-600"
+                          className="flex-1 bg-blue-500 text-white px-3 py-2 rounded flex items-center justify-center gap-1 hover:bg-blue-600 transition"
                         >
-                          <Edit2 size={16} />
+                          <EditIcon />
                           Editar
                         </button>
                         <button
                           onClick={() => handleDelete(beer.id)}
-                          className="flex-1 bg-red-500 text-white px-3 py-1 rounded flex items-center justify-center gap-1 hover:bg-red-600"
+                          className="flex-1 bg-red-500 text-white px-3 py-2 rounded flex items-center justify-center gap-1 hover:bg-red-600 transition"
                         >
-                          <Trash2 size={16} />
+                          <TrashIcon />
                           Eliminar
                         </button>
                       </div>
@@ -343,10 +387,18 @@
                 </div>
 
                 {filteredBeers.length === 0 && (
-                  <div className="text-center py-12 text-gray-500">
-                    {beers.length === 0 
-                      ? "No hay cervezas en tu colección. ¡Agrega la primera!"
-                      : "No se encontraron resultados para tu búsqueda SQL."}
+                  <div className="text-center py-16 text-gray-500">
+                    <div className="text-6xl mb-4">🍺</div>
+                    <p className="text-xl font-semibold mb-2">
+                      {beers.length === 0 
+                        ? "Tu colección está vacía"
+                        : "No se encontraron resultados"}
+                    </p>
+                    <p className="text-sm">
+                      {beers.length === 0 
+                        ? "¡Agrega tu primera cerveza para comenzar!"
+                        : "Intenta con otra búsqueda SQL"}
+                    </p>
                   </div>
                 )}
               </div>
