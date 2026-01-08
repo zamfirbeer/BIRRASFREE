@@ -11,7 +11,42 @@
 </head>
 <body>
     <div id="root"></div>
-    
+    <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    addDoc,
+    deleteDoc,
+    doc,
+    updateDoc
+  } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBwsQT_uy2djMTEZpcMb451AhXgd5Pn8xk",
+    authDomain: "beerfree-e7dbb.firebaseapp.com",
+    projectId: "beerfree-e7dbb",
+    storageBucket: "beerfree-e7dbb.firebasestorage.app",
+    messagingSenderId: "990167849390",
+    appId: "1:990167849390:web:d0dc8fb5d263d07273503f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 🔥 hacemos Firestore global
+  window.db = db;
+  window.fb = {
+    collection,
+    getDocs,
+    addDoc,
+    deleteDoc,
+    doc,
+    updateDoc
+  };
+</script>
+
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -69,25 +104,25 @@
           });
 
           useEffect(() => {
-            try {
-              const savedBeers = localStorage.getItem('beers');
-              if (savedBeers) {
-                setBeers(JSON.parse(savedBeers));
-              }
-            } catch (e) {
-              console.error('Error cargando datos:', e);
-            }
-          }, []);
+  const loadBeers = async () => {
+    const snapshot = await window.fb.getDocs(
+      window.fb.collection(window.db, "beers")
+    );
+
+    const data = snapshot.docs.map(d => ({
+      id: d.id,
+      ...d.data()
+    }));
+
+    setBeers(data);
+  };
+
+  loadBeers();
+}, []);
 
           useEffect(() => {
-            try {
-              localStorage.setItem('beers', JSON.stringify(beers));
-              setFilteredBeers(beers);
-            } catch (e) {
-              console.error('Error guardando datos:', e);
-            }
-          }, [beers]);
-
+  setFilteredBeers(beers);
+}, [beers]);
           const handleInputChange = (e) => {
             const { name, value } = e.target;
             setFormData(prev => ({ ...prev, [name]: value }));
@@ -111,15 +146,24 @@
             }
             
             if (editingId) {
-              setBeers(beers.map(beer => 
-                beer.id === editingId ? { ...formData, id: editingId } : beer
-              ));
+              await window.fb.updateDoc(
+  window.fb.doc(window.db, "beers", editingId),
+  formData
+);
+
               setEditingId(null);
             } else {
-              setBeers([...beers, { ...formData, id: Date.now() }]);
+              await window.fb.addDoc(
+  window.fb.collection(window.db, "beers"),
+  formData
+);;
             }
             resetForm();
           };
+const snapshot = await window.fb.getDocs(
+  window.fb.collection(window.db, "beers")
+);
+setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
 
           const resetForm = () => {
             setFormData({
@@ -142,7 +186,12 @@
 
           const handleDelete = (id) => {
             if (confirm('¿Estás seguro de eliminar esta cerveza?')) {
-              setBeers(beers.filter(beer => beer.id !== id));
+              await window.fb.deleteDoc(
+  window.fb.doc(window.db, "beers", id)
+);
+
+setBeers(beers.filter(beer => beer.id !== id));
+
             }
           };
 
