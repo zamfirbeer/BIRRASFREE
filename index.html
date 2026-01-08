@@ -13,15 +13,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      addDoc,
-      deleteDoc,
-      doc,
-      updateDoc
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     // Config Firebase
     const firebaseConfig = {
@@ -39,114 +31,183 @@
     const fb = { collection, getDocs, addDoc, deleteDoc, doc, updateDoc };
 
     // Iconos SVG
-    const PlusIcon = () => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
-    );
+    const PlusIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+    const SearchIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>;
+    const DownloadIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+    const EditIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+    const TrashIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
 
     const BeerDatabase = () => {
       const { useState, useEffect } = React;
 
       const [beers, setBeers] = useState([]);
+      const [filteredBeers, setFilteredBeers] = useState([]);
       const [showForm, setShowForm] = useState(false);
       const [editingId, setEditingId] = useState(null);
+      const [sqlQuery, setSqlQuery] = useState('');
       const [formData, setFormData] = useState({
-        nombre: '', tipo: '', nacionalidad: '', color: '',
-        observaciones: '', puntuacion: '', imagen: ''
+        nombre:'', tipo:'', nacionalidad:'', color:'', observaciones:'', puntuacion:'', imagen:''
       });
 
+      // Cargar cervezas
       useEffect(() => {
         async function loadBeers() {
-          const snapshot = await fb.getDocs(collection(db, "beers"));
-          setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+          const snapshot = await fb.getDocs(collection(db,"beers"));
+          const data = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+          setBeers(data);
+          setFilteredBeers(data);
         }
         loadBeers();
       }, []);
 
-      const handleInputChange = (e) => {
+      const handleInputChange = e => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
       };
 
-      const handleImageChange = (e) => {
+      const handleImageChange = e => {
         const file = e.target.files[0];
-        if (file) {
+        if(file){
           const reader = new FileReader();
-          reader.onloadend = () => setFormData(prev => ({ ...prev, imagen: reader.result }));
+          reader.onloadend = ()=> setFormData(prev => ({...prev, imagen: reader.result}));
           reader.readAsDataURL(file);
         }
       };
 
       const handleSubmit = async () => {
-        if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
-          alert("Completa todos los campos obligatorios");
-          return;
+        if(!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion){
+          alert("Completa los campos obligatorios"); return;
         }
-
-        if (editingId) {
-          await fb.updateDoc(doc(db, "beers", editingId), formData);
+        if(editingId){
+          await fb.updateDoc(doc(db,"beers",editingId), formData);
           setEditingId(null);
         } else {
-          await fb.addDoc(collection(db, "beers"), formData);
+          await fb.addDoc(collection(db,"beers"), formData);
         }
-
-        const snapshot = await fb.getDocs(collection(db, "beers"));
-        setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        const snapshot = await fb.getDocs(collection(db,"beers"));
+        const data = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
+        setBeers(data);
+        setFilteredBeers(data);
         setFormData({ nombre:'', tipo:'', nacionalidad:'', color:'', observaciones:'', puntuacion:'', imagen:'' });
         setShowForm(false);
       };
 
-      const handleEdit = (beer) => {
-        setFormData({ ...beer });
-        setEditingId(beer.id);
-        setShowForm(true);
+      const handleEdit = beer => { setFormData({...beer}); setEditingId(beer.id); setShowForm(true); };
+      const handleDelete = async id => { if(confirm("Eliminar cerveza?")){ await fb.deleteDoc(doc(db,"beers",id)); const data=beers.filter(b=>b.id!==id); setBeers(data); setFilteredBeers(data); } };
+
+      // Buscador SQL simple
+      const executeSQLQuery = () => {
+        if(!sqlQuery.trim()){ setFilteredBeers(beers); return; }
+        let result = [...beers];
+        const q = sqlQuery.toLowerCase();
+
+        if(q.includes("where")){
+          const whereClause = q.split("where")[1].split("order by")[0].trim();
+          const conditions = whereClause.split("and").map(c=>c.trim());
+          result = result.filter(b=>{
+            return conditions.every(cond=>{
+              const like = cond.match(/(\w+)\s+like\s+['"]%(.+)%['"]/);
+              const eq = cond.match(/(\w+)\s*=\s*['"](.+)['"]/);
+              const gt = cond.match(/(\w+)\s*>\s*(\d+\.?\d*)/);
+              const lt = cond.match(/(\w+)\s*<\s*(\d+\.?\d*)/);
+              if(like){ const [_,f,v]=like; return b[f]?.toLowerCase().includes(v.toLowerCase()); }
+              if(eq){ const [_,f,v]=eq; return b[f]?.toLowerCase()===v.toLowerCase(); }
+              if(gt){ const [_,f,v]=gt; return parseFloat(b[f])>parseFloat(v); }
+              if(lt){ const [_,f,v]=lt; return parseFloat(b[f])<parseFloat(v); }
+              return true;
+            });
+          });
+        }
+
+        if(q.includes("order by")){
+          const orderClause = q.split("order by")[1].trim();
+          const [field, dir] = orderClause.split(/\s+/);
+          const isDesc = dir?.toLowerCase()==="desc";
+          result.sort((a,b)=>{
+            const aVal=a[field]||'', bVal=b[field]||'';
+            if(!isNaN(aVal) && !isNaN(bVal)) return isDesc? bVal-aVal : aVal-bVal;
+            return isDesc? bVal.toString().localeCompare(aVal.toString()): aVal.toString().localeCompare(bVal.toString());
+          });
+        }
+
+        setFilteredBeers(result);
       };
 
-      const handleDelete = async (id) => {
-        if (!confirm("¿Eliminar esta cerveza?")) return;
-        await fb.deleteDoc(doc(db, "beers", id));
-        setBeers(beers.filter(b => b.id !== id));
+      const downloadData = () => {
+        const blob = new Blob([JSON.stringify(beers,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='mis_cervezas.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       };
 
       return (
         <div className="max-w-7xl mx-auto p-4">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
             <h1 className="text-3xl font-bold text-amber-800">🍺 Mi Colección de Cervezas</h1>
-            <button onClick={() => setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded flex items-center gap-2">
-              <PlusIcon /> {showForm ? "Cancelar" : "Agregar"}
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={()=>setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-amber-700 transition">
+                <PlusIcon /> {showForm ? "Cancelar" : "Agregar"}
+              </button>
+              <button onClick={downloadData} className="bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-700 transition">
+                <DownloadIcon /> Exportar
+              </button>
+            </div>
           </div>
 
           {showForm && (
             <div className="mb-6 bg-amber-50 p-4 rounded shadow">
-              <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Nombre *" className="border p-2 mb-2 w-full" />
-              <input type="text" name="tipo" value={formData.tipo} onChange={handleInputChange} placeholder="Tipo *" className="border p-2 mb-2 w-full" />
-              <input type="text" name="nacionalidad" value={formData.nacionalidad} onChange={handleInputChange} placeholder="Nacionalidad *" className="border p-2 mb-2 w-full" />
-              <input type="text" name="color" value={formData.color} onChange={handleInputChange} placeholder="Color *" className="border p-2 mb-2 w-full" />
-              <input type="number" name="puntuacion" value={formData.puntuacion} onChange={handleInputChange} placeholder="Puntuación *" className="border p-2 mb-2 w-full" />
-              <input type="file" onChange={handleImageChange} className="mb-2" />
-              <button onClick={handleSubmit} className="bg-amber-700 text-white px-4 py-2 rounded">{editingId ? "Actualizar" : "Guardar"}</button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Nombre *" className="border p-2" />
+                <input type="text" name="tipo" value={formData.tipo} onChange={handleInputChange} placeholder="Tipo *" className="border p-2" />
+                <input type="text" name="nacionalidad" value={formData.nacionalidad} onChange={handleInputChange} placeholder="Nacionalidad *" className="border p-2" />
+                <input type="text" name="color" value={formData.color} onChange={handleInputChange} placeholder="Color *" className="border p-2" />
+                <input type="number" name="puntuacion" value={formData.puntuacion} onChange={handleInputChange} placeholder="Puntuación *" className="border p-2" />
+                <label className="cursor-pointer bg-amber-200 px-4 py-2 rounded hover:bg-amber-300 flex items-center gap-2">
+                  📷 Subir Foto
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+              </div>
+              <textarea name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones" className="border p-2 w-full mb-4" rows="3"></textarea>
+              <button onClick={handleSubmit} className="bg-amber-700 text-white px-6 py-2 rounded hover:bg-amber-800">
+                {editingId ? "Actualizar" : "Guardar"} Cerveza
+              </button>
             </div>
           )}
 
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-amber-800 mb-2">🔍 Buscador SQL</h2>
+            <div className="flex gap-2 flex-wrap">
+              <input type="text" value={sqlQuery} onChange={e=>setSqlQuery(e.target.value)} placeholder='WHERE tipo LIKE "%IPA%" ORDER BY puntuacion DESC' className="flex-1 min-w-[200px] border p-2" onKeyPress={e=>e.key==="Enter" && executeSQLQuery()} />
+              <button onClick={executeSQLQuery} className="bg-blue-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-blue-700"><SearchIcon /> Buscar</button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {beers.map(beer => (
-              <div key={beer.id} className="bg-white p-4 rounded shadow">
+            {filteredBeers.map(beer => (
+              <div key={beer.id} className="bg-white rounded shadow p-4">
                 {beer.imagen && <img src={beer.imagen} alt={beer.nombre} className="w-full h-48 object-contain mb-2" />}
-                <h3 className="text-xl font-bold">{beer.nombre}</h3>
+                <h3 className="text-xl font-bold text-amber-800">{beer.nombre}</h3>
                 <p>Tipo: {beer.tipo}</p>
                 <p>Nacionalidad: {beer.nacionalidad}</p>
                 <p>Color: {beer.color}</p>
-                <p>Puntuación: {beer.puntuacion}</p>
+                <p>Puntuación: ⭐ {beer.puntuacion}/10</p>
+                {beer.observaciones && <p className="text-gray-600 italic mt-2">"{beer.observaciones}"</p>}
                 <div className="flex gap-2 mt-2">
-                  <button onClick={() => handleEdit(beer)} className="bg-blue-500 text-white px-2 py-1 rounded">Editar</button>
-                  <button onClick={() => handleDelete(beer.id)} className="bg-red-500 text-white px-2 py-1 rounded">Eliminar</button>
+                  <button onClick={()=>handleEdit(beer)} className="flex-1 bg-blue-500 text-white px-2 py-1 rounded flex justify-center items-center gap-1 hover:bg-blue-600"><EditIcon /> Editar</button>
+                  <button onClick={()=>handleDelete(beer.id)} className="flex-1 bg-red-500 text-white px-2 py-1 rounded flex justify-center items-center gap-1 hover:bg-red-600"><TrashIcon /> Eliminar</button>
                 </div>
               </div>
             ))}
           </div>
+
+          {filteredBeers.length===0 && (
+            <div className="text-center py-16 text-gray-500">
+              <div className="text-6xl mb-4">🍺</div>
+              <p className="text-xl font-semibold mb-2">{beers.length===0?"Tu colección está vacía":"No se encontraron resultados"}</p>
+              <p className="text-sm">{beers.length===0?"¡Agrega tu primera cerveza!":"Intenta otra búsqueda SQL"}</p>
+            </div>
+          )}
         </div>
       );
     };
