@@ -139,30 +139,34 @@
             }
           };
 
-          const handleSubmit = async () => {
-            if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
-              alert('Por favor completa todos los campos obligatorios');
-              return;
-            }
-            
-            if (editingId) {
-              await window.fb.updateDoc(
-  window.fb.doc(window.db, "beers", editingId),
-  formData
-);
+         const handleSubmit = async () => {
+  if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
+    alert('Por favor completa todos los campos obligatorios');
+    return;
+  }
 
-              setEditingId(null);
-            } else {
-              await window.fb.addDoc(
-  window.fb.collection(window.db, "beers"),
-  formData
-);;
-            }
-            resetForm();
-          };
-const snapshot = await window.fb.getDocs(
-  window.fb.collection(window.db, "beers")
-);
+  if (editingId) {
+    await window.fb.updateDoc(
+      window.fb.doc(window.db, "beers", editingId),
+      formData
+    );
+    setEditingId(null);
+  } else {
+    await window.fb.addDoc(
+      window.fb.collection(window.db, "beers"),
+      formData
+    );
+  }
+
+  // 🔄 recargar cervezas desde Firestore
+  const snapshot = await window.fb.getDocs(
+    window.fb.collection(window.db, "beers")
+  );
+
+
+  resetForm();
+};
+
 setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
 
           const resetForm = () => {
@@ -179,21 +183,22 @@ setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
           };
 
           const handleEdit = (beer) => {
-            setFormData(beer);
-            setEditingId(beer.id);
-            setShowForm(true);
-          };
+  const { id, ...data } = beer;
+  setFormData(data);
+  setEditingId(id);
+  setShowForm(true);
+};
 
-          const handleDelete = async  () => {
-            if (confirm('¿Estás seguro de eliminar esta cerveza?')) {
-              await window.fb.deleteDoc(
-  window.fb.doc(window.db, "beers", id)
-);
 
-setBeers(beers.filter(beer => beer.id !== id));
+         const handleDelete = async (id) => {
+  if (confirm('¿Estás seguro de eliminar esta cerveza?')) {
+    await window.fb.deleteDoc(
+      window.fb.doc(window.db, "beers", id)
+    );
 
-            }
-          };
+    setBeers(beers.filter(beer => beer.id !== id));
+  }
+};
 
           const executeSQLQuery = () => {
             if (!sqlQuery.trim()) {
@@ -461,5 +466,6 @@ setBeers(beers.filter(beer => beer.id !== id));
     </script>
 </body>
 </html>
+
 
 
