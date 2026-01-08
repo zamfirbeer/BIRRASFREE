@@ -139,7 +139,7 @@
             }
           };
 
-          const handleSubmit = () => {
+          const handleSubmit = async () => {
             if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
               alert('Por favor completa todos los campos obligatorios');
               return;
@@ -184,7 +184,7 @@ setBeers(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
             setShowForm(true);
           };
 
-          const handleDelete = (id) => {
+          const handleDelete = async  () => {
             if (confirm('¿Estás seguro de eliminar esta cerveza?')) {
               await window.fb.deleteDoc(
   window.fb.doc(window.db, "beers", id)
@@ -461,4 +461,5 @@ setBeers(beers.filter(beer => beer.id !== id));
     </script>
 </body>
 </html>
+
 
