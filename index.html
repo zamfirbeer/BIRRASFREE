@@ -118,36 +118,81 @@ function BeerDatabase() {
   };
 
   // SQL fake
-  const executeSQLQuery = () => {
-    if (!sqlQuery.trim()) { setFilteredBeers(beers); return; }
-    const query = sqlQuery.toLowerCase();
+ const executeSQLQuery = () => {
+  if (!sqlQuery.trim()) {
+    setFilteredBeers(beers);
+    return;
+  }
+
+  const query = sqlQuery.toLowerCase().trim();
+
+  try {
     let result = [...beers];
 
+    // Manejo de WHERE
     if (query.includes('where')) {
       const whereClause = query.split('where')[1].split('order by')[0].trim();
-      const conditions = whereClause.split('and').map(c => c.trim());
-      result = result.filter(beer => conditions.every(cond => {
-        const likeMatch = cond.match(/(\w+)\s+like\s+['"]%(.+)%['"]/);
-        const eqMatch = cond.match(/(\w+)\s*=\s*['"](.+)['"]/);
-        if (likeMatch) return beer[likeMatch[1]]?.toLowerCase().includes(likeMatch[2].toLowerCase());
-        if (eqMatch) return beer[eqMatch[1]]?.toLowerCase() === eqMatch[2].toLowerCase();
-        return true;
-      }));
+
+      result = result.filter(beer => {
+        const conditions = whereClause.split('and').map(c => c.trim());
+
+        return conditions.every(condition => {
+          // LIKE
+          const likeMatch = condition.match(/(\w+)\s+like\s+['"]%(.+)%['"]/i);
+          // Igualdad
+          const equalMatch = condition.match(/(\w+)\s*=\s*['"](.+)['"]/i);
+          // Mayor que
+          const gtMatch = condition.match(/(\w+)\s*>\s*(\d+\.?\d*)/i);
+          // Menor que
+          const ltMatch = condition.match(/(\w+)\s*<\s*(\d+\.?\d*)/i);
+
+          if (likeMatch) {
+            const [, field, value] = likeMatch;
+            return beer[field]?.toString().toLowerCase().includes(value.toLowerCase());
+          } else if (equalMatch) {
+            const [, field, value] = equalMatch;
+            return beer[field]?.toString().toLowerCase() === value.toLowerCase();
+          } else if (gtMatch) {
+            const [, field, value] = gtMatch;
+            return parseFloat(beer[field]) > parseFloat(value);
+          } else if (ltMatch) {
+            const [, field, value] = ltMatch;
+            return parseFloat(beer[field]) < parseFloat(value);
+          }
+
+          return true; // Si la condición no se reconoce, no filtra
+        });
+      });
     }
 
+    // Manejo de ORDER BY
     if (query.includes('order by')) {
       const orderClause = query.split('order by')[1].trim();
-      const [field, dir] = orderClause.split(/\s+/);
-      const desc = dir?.toLowerCase() === 'desc';
-      result.sort((a,b) => {
-        const aVal = a[field] || '', bVal = b[field] || '';
-        if (!isNaN(aVal) && !isNaN(bVal)) return desc ? bVal - aVal : aVal - bVal;
-        return desc ? bVal.toString().localeCompare(aVal) : aVal.toString().localeCompare(bVal);
+      const [field, direction] = orderClause.split(/\s+/);
+      const isDesc = direction?.toLowerCase() === 'desc';
+
+      result.sort((a, b) => {
+        const aVal = a[field] ?? '';
+        const bVal = b[field] ?? '';
+
+        // Si ambos son números
+        if (!isNaN(aVal) && !isNaN(bVal)) {
+          return isDesc ? bVal - aVal : aVal - bVal;
+        }
+
+        // Comparación como strings
+        return isDesc 
+          ? bVal.toString().localeCompare(aVal.toString())
+          : aVal.toString().localeCompare(bVal.toString());
       });
     }
 
     setFilteredBeers(result);
-  };
+  } catch (error) {
+    console.error(error);
+    alert('Error en la consulta SQL. Verifica la sintaxis.');
+  }
+};
 
   // Exportar JSON
   const downloadData = () => {
@@ -238,3 +283,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(<BeerDatabase />);
 </script>
 </body>
 </html>
+
