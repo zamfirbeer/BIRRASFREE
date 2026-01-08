@@ -1,4 +1,4 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -8,9 +8,355 @@ html<!DOCTYPE html>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel" src="app.js"></script>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Plus, Search, Download, Trash2, Edit2 } = lucide;
+
+        function BeerDatabase() {
+          const [beers, setBeers] = useState([]);
+          const [showForm, setShowForm] = useState(false);
+          const [editingId, setEditingId] = useState(null);
+          const [sqlQuery, setSqlQuery] = useState('');
+          const [filteredBeers, setFilteredBeers] = useState([]);
+          const [formData, setFormData] = useState({
+            nombre: '',
+            tipo: '',
+            nacionalidad: '',
+            color: '',
+            observaciones: '',
+            puntuacion: '',
+            imagen: ''
+          });
+
+          useEffect(() => {
+            const savedBeers = localStorage.getItem('beers');
+            if (savedBeers) {
+              setBeers(JSON.parse(savedBeers));
+            }
+          }, []);
+
+          useEffect(() => {
+            localStorage.setItem('beers', JSON.stringify(beers));
+            setFilteredBeers(beers);
+          }, [beers]);
+
+          const handleInputChange = (e) => {
+            const { name, value } = e.target;
+            setFormData(prev => ({ ...prev, [name]: value }));
+          };
+
+          const handleImageChange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, imagen: reader.result }));
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+
+          const handleSubmit = () => {
+            if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
+              alert('Por favor completa todos los campos obligatorios');
+              return;
+            }
+            
+            if (editingId) {
+              setBeers(beers.map(beer => 
+                beer.id === editingId ? { ...formData, id: editingId } : beer
+              ));
+              setEditingId(null);
+            } else {
+              setBeers([...beers, { ...formData, id: Date.now() }]);
+            }
+            resetForm();
+          };
+
+          const resetForm = () => {
+            setFormData({
+              nombre: '',
+              tipo: '',
+              nacionalidad: '',
+              color: '',
+              observaciones: '',
+              puntuacion: '',
+              imagen: ''
+            });
+            setShowForm(false);
+          };
+
+          const handleEdit = (beer) => {
+            setFormData(beer);
+            setEditingId(beer.id);
+            setShowForm(true);
+          };
+
+          const handleDelete = (id) => {
+            if (confirm('¿Estás seguro de eliminar esta cerveza?')) {
+              setBeers(beers.filter(beer => beer.id !== id));
+            }
+          };
+
+          const executeSQLQuery = () => {
+            if (!sqlQuery.trim()) {
+              setFilteredBeers(beers);
+              return;
+            }
+
+            const query = sqlQuery.toLowerCase().trim();
+            
+            try {
+              let result = [...beers];
+
+              if (query.includes('where')) {
+                const whereClause = query.split('where')[1].split('order by')[0].trim();
+                
+                result = beers.filter(beer => {
+                  const conditions = whereClause.split('and').map(c => c.trim());
+                  
+                  return conditions.every(condition => {
+                    const likeMatch = condition.match(/(\w+)\s+like\s+['"]%(.+)%['"]/i);
+                    const equalMatch = condition.match(/(\w+)\s*=\s*['"](.+)['"]/i);
+                    const gtMatch = condition.match(/(\w+)\s*>\s*(\d+\.?\d*)/i);
+                    const ltMatch = condition.match(/(\w+)\s*<\s*(\d+\.?\d*)/i);
+                    
+                    if (likeMatch) {
+                      const [, field, value] = likeMatch;
+                      return beer[field]?.toLowerCase().includes(value.toLowerCase());
+                    } else if (equalMatch) {
+                      const [, field, value] = equalMatch;
+                      return beer[field]?.toLowerCase() === value.toLowerCase();
+                    } else if (gtMatch) {
+                      const [, field, value] = gtMatch;
+                      return parseFloat(beer[field]) > parseFloat(value);
+                    } else if (ltMatch) {
+                      const [, field, value] = ltMatch;
+                      return parseFloat(beer[field]) < parseFloat(value);
+                    }
+                    return true;
+                  });
+                });
+              }
+
+              if (query.includes('order by')) {
+                const orderClause = query.split('order by')[1].trim();
+                const [field, direction] = orderClause.split(/\s+/);
+                const isDesc = direction?.toLowerCase() === 'desc';
+                
+                result.sort((a, b) => {
+                  const aVal = a[field] || '';
+                  const bVal = b[field] || '';
+                  
+                  if (!isNaN(aVal) && !isNaN(bVal)) {
+                    return isDesc ? bVal - aVal : aVal - bVal;
+                  }
+                  
+                  return isDesc 
+                    ? bVal.toString().localeCompare(aVal.toString())
+                    : aVal.toString().localeCompare(bVal.toString());
+                });
+              }
+
+              setFilteredBeers(result);
+            } catch (error) {
+              alert('Error en la consulta SQL. Verifica la sintaxis.');
+            }
+          };
+
+          const downloadData = () => {
+            const dataStr = JSON.stringify(beers, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mis_cervezas.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+          };
+
+          return (
+            <div className="min-h-screen bg-amber-50 p-4">
+              <div className="max-w-7xl mx-auto">
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+                    <h1 className="text-3xl font-bold text-amber-800">🍺 Mi Colección de Cervezas</h1>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-amber-700"
+                      >
+                        <Plus size={20} />
+                        {showForm ? 'Cancelar' : 'Agregar'}
+                      </button>
+                      <button
+                        onClick={downloadData}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700"
+                      >
+                        <Download size={20} />
+                        Exportar
+                      </button>
+                    </div>
+                  </div>
+
+                  {showForm && (
+                    <div className="mb-6 bg-amber-50 p-4 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <input
+                          type="text"
+                          name="nombre"
+                          value={formData.nombre}
+                          onChange={handleInputChange}
+                          placeholder="Nombre *"
+                          className="border border-amber-300 rounded px-3 py-2"
+                        />
+                        <input
+                          type="text"
+                          name="tipo"
+                          value={formData.tipo}
+                          onChange={handleInputChange}
+                          placeholder="Tipo (IPA, Lager, Stout...) *"
+                          className="border border-amber-300 rounded px-3 py-2"
+                        />
+                        <input
+                          type="text"
+                          name="nacionalidad"
+                          value={formData.nacionalidad}
+                          onChange={handleInputChange}
+                          placeholder="Nacionalidad *"
+                          className="border border-amber-300 rounded px-3 py-2"
+                        />
+                        <input
+                          type="text"
+                          name="color"
+                          value={formData.color}
+                          onChange={handleInputChange}
+                          placeholder="Color (Rubia, Negra, Tostada...) *"
+                          className="border border-amber-300 rounded px-3 py-2"
+                        />
+                        <input
+                          type="number"
+                          name="puntuacion"
+                          value={formData.puntuacion}
+                          onChange={handleInputChange}
+                          placeholder="Puntuación (1-10) *"
+                          min="1"
+                          max="10"
+                          step="0.1"
+                          className="border border-amber-300 rounded px-3 py-2"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="cursor-pointer bg-amber-200 px-4 py-2 rounded hover:bg-amber-300 flex items-center gap-2">
+                            📷 Subir Foto
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageChange}
+                              className="hidden"
+                            />
+                          </label>
+                          {formData.imagen && <span className="text-sm text-green-600">✓ Foto cargada</span>}
+                        </div>
+                      </div>
+                      <textarea
+                        name="observaciones"
+                        value={formData.observaciones}
+                        onChange={handleInputChange}
+                        placeholder="Observaciones"
+                        className="border border-amber-300 rounded px-3 py-2 w-full mb-4"
+                        rows="3"
+                      />
+                      <button
+                        onClick={handleSubmit}
+                        className="bg-amber-700 text-white px-6 py-2 rounded-lg hover:bg-amber-800"
+                      >
+                        {editingId ? 'Actualizar' : 'Guardar'} Cerveza
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="mb-6">
+                    <h2 className="text-xl font-bold text-amber-800 mb-2">🔍 Buscador SQL</h2>
+                    <div className="flex gap-2 flex-wrap">
+                      <input
+                        type="text"
+                        value={sqlQuery}
+                        onChange={(e) => setSqlQuery(e.target.value)}
+                        placeholder="WHERE tipo LIKE '%IPA%' ORDER BY puntuacion DESC"
+                        className="flex-1 min-w-[200px] border border-amber-300 rounded px-3 py-2"
+                      />
+                      <button
+                        onClick={executeSQLQuery}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+                      >
+                        <Search size={20} />
+                        Buscar
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Ejemplos: WHERE tipo = "IPA" | WHERE puntuacion &gt; 8 | WHERE nacionalidad LIKE "%España%" ORDER BY puntuacion DESC
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredBeers.map(beer => (
+                    <div key={beer.id} className="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow">
+                      {beer.imagen && (
+                        <img src={beer.imagen} alt={beer.nombre} className="w-full h-48 object-contain mb-3 rounded" />
+                      )}
+                      <h3 className="text-xl font-bold text-amber-800 mb-2">{beer.nombre}</h3>
+                      <div className="space-y-1 text-sm mb-3">
+                        <p><span className="font-semibold">Tipo:</span> {beer.tipo}</p>
+                        <p><span className="font-semibold">Nacionalidad:</span> {beer.nacionalidad}</p>
+                        <p><span className="font-semibold">Color:</span> {beer.color}</p>
+                        <p><span className="font-semibold">Puntuación:</span> ⭐ {beer.puntuacion}/10</p>
+                        {beer.observaciones && (
+                          <p className="text-gray-600 italic mt-2">{beer.observaciones}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => handleEdit(beer)}
+                          className="flex-1 bg-blue-500 text-white px-3 py-1 rounded flex items-center justify-center gap-1 hover:bg-blue-600"
+                        >
+                          <Edit2 size={16} />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(beer.id)}
+                          className="flex-1 bg-red-500 text-white px-3 py-1 rounded flex items-center justify-center gap-1 hover:bg-red-600"
+                        >
+                          <Trash2 size={16} />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {filteredBeers.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    {beers.length === 0 
+                      ? "No hay cervezas en tu colección. ¡Agrega la primera!"
+                      : "No se encontraron resultados para tu búsqueda SQL."}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Renderizar la aplicación
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<BeerDatabase />);
+    </script>
 </body>
 </html>
