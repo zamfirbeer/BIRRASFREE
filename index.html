@@ -210,7 +210,7 @@ function BeerDatabase() {
   return (
     <div className="min-h-screen p-4 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-        <h1 className="text-3xl font-bold text-amber-800">🍺 Mi Colección de Cervezas</h1>
+        <h1 className="text-3xl font-bold text-amber-800">🍺 Cervecéame pero con moderación</h1>
         <div className="flex gap-2">
           <button onClick={()=>setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 flex items-center gap-2">
             <PlusIcon /> {showForm ? 'Cancelar' : 'Agregar'}
@@ -283,5 +283,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(<BeerDatabase />);
 </script>
 </body>
 </html>
+
 
 
