@@ -61,10 +61,13 @@ function BeerDatabase() {
 
   // Inputs
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
 
+  setFormData(prev => ({
+    ...prev,
+    [name]: name === 'puntuacion' ? Number(value) : value
+  }));
+};
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -102,11 +105,14 @@ function BeerDatabase() {
 
   // Editar
   const handleEdit = (beer) => {
-    const { id, ...data } = beer;
-    setFormData(data);
-    setEditingId(id);
-    setShowForm(true);
-  };
+  const { id, ...data } = beer;
+  setFormData({
+    ...data,
+    puntuacion: Number(data.puntuacion)
+  });
+  setEditingId(id);
+  setShowForm(true);
+};
 
   // Eliminar
   const handleDelete = (id) => {
@@ -283,6 +289,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<BeerDatabase />);
 </script>
 </body>
 </html>
+
 
 
 
