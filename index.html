@@ -1,239 +1,89 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cervecéame pero con moderación</title>
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a'); a.href = url; a.download = 'mis_cervezas.json'; a.click();
+};
 
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Firebase UMD (compat) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-</head>
-<body class="bg-amber-50">
-  <div id="root"></div>
+return (
+<div className="min-h-screen p-4 max-w-7xl mx-auto">
+<div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+<h1 className="text-3xl font-bold text-amber-800">🍺 Cervecéame pero con moderación</h1>
+<div className="flex gap-2">
+<button onClick={() => setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded"><PlusIcon /> {showForm ? 'Cancelar' : 'Agregar'}</button>
+<button onClick={downloadData} className="bg-green-600 text-white px-4 py-2 rounded"><DownloadIcon /> Exportar</button>
+</div>
+</div>
 
-  <script type="text/babel">
-    const { useState, useEffect } = React;
 
-    // Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyA8HtouyDiMEr7wYgIVjP-tNog9QAp5tZU",
-      authDomain: "beerfree-e7dbb.firebaseapp.com",
-      projectId: "beerfree-e7dbb",
-      storageBucket: "beerfree-e7dbb.firebasestorage.app",
-      messagingSenderId: "990167849390",
-      appId: "1:990167849390:web:d0dc8fb5d263d07273503f"
-    };
+{showForm && (
+<div className="mb-6 bg-amber-50 p-4 rounded">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+<input name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Nombre *" className="border px-3 py-2 rounded" />
+<input name="tipo" value={formData.tipo} onChange={handleInputChange} placeholder="Tipo *" className="border px-3 py-2 rounded" />
+<input name="nacionalidad" value={formData.nacionalidad} onChange={handleInputChange} placeholder="Nacionalidad *" className="border px-3 py-2 rounded" />
+<input name="color" value={formData.color} onChange={handleInputChange} placeholder="Color *" className="border px-3 py-2 rounded" />
+<input type="number" name="puntuacion" value={formData.puntuacion} onChange={handleInputChange} placeholder="Puntuación *" min="1" max="10" step="0.1" className="border px-3 py-2 rounded" />
+<label className="cursor-pointer bg-amber-200 px-4 py-2 rounded">📷 Subir Foto<input type="file" accept="image/*" onChange={handleImageChange} className="hidden" /></label>
+</div>
+<textarea name="observaciones" value={formData.observaciones} onChange={handleInputChange} placeholder="Observaciones" className="border px-3 py-2 w-full mb-4 rounded" />
+<button onClick={handleSubmit} className="bg-amber-700 text-white px-6 py-2 rounded">{editingId ? 'Actualizar' : 'Guardar'} Cerveza</button>
+</div>
+)}
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
 
-    // Iconos
-    const PlusIcon = () => <span>➕</span>;
-    const SearchIcon = () => <span>🔍</span>;
-    const DownloadIcon = () => <span>💾</span>;
-    const EditIcon = () => <span>✏️</span>;
-    const TrashIcon = () => <span>🗑️</span>;
+<div className="mb-6">
+<h2 className="text-xl font-bold text-amber-800 mb-2">🔍 Buscador SQL</h2>
+<div className="flex gap-2 flex-wrap">
+<input value={sqlQuery} onChange={e => setSqlQuery(e.target.value)} placeholder="WHERE tipo LIKE '%IPA%'" className="flex-1 border px-3 py-2 rounded" />
+<button onClick={executeSQLQuery} className="bg-blue-600 text-white px-4 py-2 rounded"><SearchIcon /> Buscar</button>
+</div>
+</div>
 
-    function BeerDatabase() {
-      const [beers, setBeers] = useState([]);
-      const [filteredBeers, setFilteredBeers] = useState([]);
-      const [showForm, setShowForm] = useState(false);
-      const [editingId, setEditingId] = useState(null);
-      const [sqlQuery, setSqlQuery] = useState('');
 
-      const [orderField, setOrderField] = useState('');
-      const [orderDirection, setOrderDirection] = useState('asc');
+<div className="mb-6 bg-amber-100 p-4 rounded shadow">
+<h2 className="font-bold mb-3">↕️ Ordenar resultados</h2>
+<div className="flex gap-4 flex-wrap items-end">
+<select value={orderField} onChange={e => setOrderField(e.target.value)} className="border px-3 py-2 rounded">
+<option value="">Campo</option>
+<option value="nombre">Nombre</option>
+<option value="tipo">Tipo</option>
+<option value="nacionalidad">Nacionalidad</option>
+<option value="color">Color</option>
+<option value="puntuacion">Puntuación</option>
+</select>
+<select value={orderDirection} onChange={e => setOrderDirection(e.target.value)} disabled={!orderField} className="border px-3 py-2 rounded">
+<option value="asc">Ascendente</option>
+<option value="desc">Descendente</option>
+</select>
+<button onClick={() => setFilteredBeers(applyOrdering(filteredBeers))} className="bg-amber-700 text-white px-4 py-2 rounded">Aplicar orden</button>
+</div>
+</div>
 
-      const [formData, setFormData] = useState({
-        nombre: '',
-        tipo: '',
-        nacionalidad: '',
-        color: '',
-        observaciones: '',
-        puntuacion: '',
-        imagen: ''
-      });
 
-      // Cargar cervezas
-      const loadBeers = () => {
-        db.collection('beers').get().then(snapshot => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setBeers(data);
-          setFilteredBeers(applyOrdering(data));
-        });
-      };
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+{filteredBeers.map(b => (
+<div key={b.id} className="bg-white p-4 rounded shadow">
+{b.imagen && <img src={b.imagen} className="w-full h-48 object-contain mb-3 bg-gray-50" />}
+<h3 className="text-xl font-bold text-amber-800">{b.nombre}</h3>
+<p><strong>Tipo:</strong> {b.tipo}</p>
+<p><strong>Nacionalidad:</strong> {b.nacionalidad}</p>
+<p><strong>Color:</strong> {b.color}</p>
+<p><strong>Puntuación:</strong> ⭐ {b.puntuacion}/10</p>
+{b.observaciones && <p className="italic text-gray-600 mt-2 border-t pt-2">"{b.observaciones}"</p>}
+<div className="flex gap-2 mt-3">
+<button onClick={() => handleEdit(b)} className="bg-blue-500 text-white px-3 py-1 rounded"><EditIcon /> Editar</button>
+<button onClick={() => handleDelete(b.id)} className="bg-red-500 text-white px-3 py-1 rounded"><TrashIcon /> Eliminar</button>
+</div>
+</div>
+))}
+</div>
+</div>
+);
+}
 
-      useEffect(() => { loadBeers(); }, []);
 
-      // Ordenación
-      const applyOrdering = (data) => {
-        if (!orderField) return data;
-
-        return [...data].sort((a, b) => {
-          const aVal = a[orderField] ?? '';
-          const bVal = b[orderField] ?? '';
-
-          if (!isNaN(aVal) && !isNaN(bVal)) {
-            return orderDirection === 'desc' ? bVal - aVal : aVal - bVal;
-          }
-
-          return orderDirection === 'desc'
-            ? bVal.toString().localeCompare(aVal.toString())
-            : aVal.toString().localeCompare(bVal.toString());
-        });
-      };
-
-      // Inputs
-      const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: name === 'puntuacion' ? Number(value) : value }));
-      };
-
-      const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => setFormData(prev => ({ ...prev, imagen: reader.result }));
-          reader.readAsDataURL(file);
-        }
-      };
-
-      // Guardar / editar
-      const handleSubmit = () => {
-        if (!formData.nombre || !formData.tipo || !formData.nacionalidad || !formData.color || !formData.puntuacion) {
-          alert('Completa todos los campos obligatorios');
-          return;
-        }
-
-        if (editingId) {
-          db.collection('beers').doc(editingId).update(formData).then(() => {
-            resetForm();
-            loadBeers();
-          });
-        } else {
-          db.collection('beers').add(formData).then(() => {
-            resetForm();
-            loadBeers();
-          });
-        }
-      };
-
-      const resetForm = () => {
-        setFormData({ nombre:'', tipo:'', nacionalidad:'', color:'', observaciones:'', puntuacion:'', imagen:'' });
-        setEditingId(null);
-        setShowForm(false);
-      };
-
-      const handleEdit = (beer) => {
-        const { id, ...data } = beer;
-        setFormData({ ...data, puntuacion: Number(data.puntuacion) });
-        setEditingId(id);
-        setShowForm(true);
-      };
-
-      const handleDelete = (id) => {
-        if (confirm('¿Eliminar esta cerveza?')) {
-          db.collection('beers').doc(id).delete().then(loadBeers);
-        }
-      };
-
-      // SQL fake
-      const executeSQLQuery = () => {
-        if (!sqlQuery.trim()) {
-          setFilteredBeers(applyOrdering(beers));
-          return;
-        }
-
-        let result = [...beers];
-        const query = sqlQuery.toLowerCase();
-
-        if (query.includes('where')) {
-          const whereClause = query.split('where')[1].split('order by')[0].trim();
-          const conditions = whereClause.split('and').map(c => c.trim());
-
-          result = result.filter(beer =>
-            conditions.every(cond => {
-              const like = cond.match(/(\w+)\s+like\s+['"]%(.+)%['"]/i);
-              const eq = cond.match(/(\w+)\s*=\s*['"](.+)['"]/i);
-              const gt = cond.match(/(\w+)\s*>\s*(\d+)/i);
-              const lt = cond.match(/(\w+)\s*<\s*(\d+)/i);
-
-              if (like) return beer[like[1]]?.toLowerCase().includes(like[2]);
-              if (eq) return beer[eq[1]]?.toLowerCase() === eq[2];
-              if (gt) return Number(beer[gt[1]]) > Number(gt[2]);
-              if (lt) return Number(beer[lt[1]]) < Number(lt[2]);
-              return true;
-            })
-          );
-        }
-
-        setFilteredBeers(applyOrdering(result));
-      };
-
-      const downloadData = () => {
-        const blob = new Blob([JSON.stringify(beers, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'mis_cervezas.json';
-        a.click();
-      };
-
-      return (
-        <div className="min-h-screen p-4 max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-amber-800 mb-6">🍺 Cervecéame pero con moderación</h1>
-
-          <div className="flex gap-2 mb-6 flex-wrap">
-            <button onClick={() => setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded"> <PlusIcon /> Agregar </button>
-            <button onClick={downloadData} className="bg-green-600 text-white px-4 py-2 rounded"> <DownloadIcon /> Exportar </button>
-          </div>
-
-          <div className="bg-white p-4 rounded shadow mb-6 flex gap-4 flex-wrap">
-            <select value={orderField} onChange={e => setOrderField(e.target.value)} className="border px-3 py-2 rounded">
-              <option value="">-- Ordenar por --</option>
-              <option value="nombre">Nombre</option>
-              <option value="tipo">Tipo</option>
-              <option value="nacionalidad">Nacionalidad</option>
-              <option value="color">Color</option>
-              <option value="puntuacion">Puntuación</option>
-            </select>
-
-            <select value={orderDirection} onChange={e => setOrderDirection(e.target.value)} className="border px-3 py-2 rounded" disabled={!orderField}>
-              <option value="asc">Ascendente</option>
-              <option value="desc">Descendente</option>
-            </select>
-
-            <button onClick={() => setFilteredBeers(applyOrdering(filteredBeers))} className="bg-amber-600 text-white px-4 py-2 rounded">Aplicar orden</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredBeers.map(b => (
-              <div key={b.id} className="bg-white p-4 rounded shadow">
-                {b.imagen && <img src={b.imagen} className="h-40 w-full object-contain mb-2" />}
-                <h3 className="font-bold text-xl">{b.nombre}</h3>
-                <p>Tipo: {b.tipo}</p>
-                <p>Nacionalidad: {b.nacionalidad}</p>
-                <p>Color: {b.color}</p>
-                <p>Puntuación: ⭐ {b.puntuacion}</p>
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => handleEdit(b)} className="bg-blue-500 text-white px-3 py-1 rounded"><EditIcon /></button>
-                  <button onClick={() => handleDelete(b.id)} className="bg-red-500 text-white px-3 py-1 rounded"><TrashIcon /></button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<BeerDatabase />);
-  </script>
+ReactDOM.createRoot(document.getElementById('root')).render(<BeerDatabase />);
+</script>
 </body>
 </html>
 
