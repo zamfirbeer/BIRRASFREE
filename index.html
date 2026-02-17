@@ -202,9 +202,22 @@
                 <p>Tipo: {b.tipo}</p>
                 <p>Puntuación: ⭐ {b.puntuacion}</p>
                 {b.observaciones && <p className="italic mt-2">"{b.observaciones}"</p>}
-                <button onClick={() => handleDelete(b.id)} className="mt-2 bg-red-500 text-white px-3 py-1 rounded">
-                  Eliminar
-                </button>
+              <div className="mt-3 flex gap-2">
+  <button
+    onClick={() => handleEdit(b)}
+    className="bg-blue-500 text-white px-3 py-1 rounded"
+  >
+    Editar
+  </button>
+
+  <button
+    onClick={() => handleDelete(b.id)}
+    className="bg-red-500 text-white px-3 py-1 rounded"
+  >
+    Eliminar
+  </button>
+</div>
+
               </div>
             ))}
           </div>
@@ -216,4 +229,5 @@
   </script>
 </body>
 </html>
+
 
