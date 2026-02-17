@@ -26,7 +26,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // 🔥 Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA8HtouyDiMEr7wYgIVjP-tNog9QAp5tZU",
       authDomain: "beerfree-e7dbb.firebaseapp.com",
@@ -39,14 +38,11 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const Icon = ({ children }) => <span>{children}</span>;
-
     function BeerDatabase() {
       const [beers, setBeers] = useState([]);
       const [filteredBeers, setFilteredBeers] = useState([]);
       const [showForm, setShowForm] = useState(false);
       const [editingId, setEditingId] = useState(null);
-      const [sqlQuery, setSqlQuery] = useState("");
 
       const [orderField, setOrderField] = useState("");
       const [orderDirection, setOrderDirection] = useState("asc");
@@ -61,7 +57,6 @@
         imagen: ""
       });
 
-      // 🔁 Cargar datos
       const loadBeers = () => {
         db.collection("beers").get().then(snapshot => {
           const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -72,23 +67,18 @@
 
       useEffect(loadBeers, []);
 
-      // ↕️ Ordenación
       const applyOrdering = (data) => {
         if (!orderField) return data;
         return [...data].sort((a, b) => {
           const A = a[orderField] ?? "";
           const B = b[orderField] ?? "";
-
-          if (!isNaN(A) && !isNaN(B)) {
-            return orderDirection === "desc" ? B - A : A - B;
-          }
+          if (!isNaN(A) && !isNaN(B)) return orderDirection === "desc" ? B - A : A - B;
           return orderDirection === "desc"
             ? B.toString().localeCompare(A.toString())
             : A.toString().localeCompare(B.toString());
         });
       };
 
-      // 📝 Inputs
       const handleChange = e => {
         const { name, value } = e.target;
         setFormData(p => ({ ...p, [name]: name === "puntuacion" ? Number(value) : value }));
@@ -102,7 +92,6 @@
         reader.readAsDataURL(file);
       };
 
-      // 💾 Guardar
       const handleSubmit = () => {
         if (!formData.nombre || !formData.tipo || !formData.puntuacion) {
           alert("Faltan campos obligatorios");
@@ -124,19 +113,28 @@
         });
       };
 
-      // 🗑️ Eliminar
       const handleDelete = id => {
         if (confirm("¿Eliminar cerveza?")) {
           db.collection("beers").doc(id).delete().then(loadBeers);
         }
       };
 
-      // 📥 Exportar
+      const handleEdit = (beer) => {
+        setFormData({
+          nombre: beer.nombre || "",
+          tipo: beer.tipo || "",
+          nacionalidad: beer.nacionalidad || "",
+          color: beer.color || "",
+          observaciones: beer.observaciones || "",
+          puntuacion: beer.puntuacion || "",
+          imagen: beer.imagen || ""
+        });
+        setEditingId(beer.id);
+        setShowForm(true);
+      };
+
       const downloadData = () => {
-        const blob = new Blob(
-          [JSON.stringify(beers, null, 2)],
-          { type: "application/json" }
-        );
+        const blob = new Blob([JSON.stringify(beers, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -149,7 +147,7 @@
           <div className="flex justify-between mb-6 flex-wrap gap-2">
             <h1 className="text-3xl font-bold text-amber-800">🍺 Cervecéame pero con moderación</h1>
             <div className="flex gap-2">
-              <button onClick={() => setShowForm(!showForm)} className="bg-amber-600 text-white px-4 py-2 rounded">
+              <button onClick={() => { setShowForm(!showForm); setEditingId(null); }} className="bg-amber-600 text-white px-4 py-2 rounded">
                 {showForm ? "Cancelar" : "Agregar"}
               </button>
               <button onClick={downloadData} className="bg-green-600 text-white px-4 py-2 rounded">
@@ -168,31 +166,10 @@
               <textarea name="observaciones" placeholder="Observaciones" onChange={handleChange} value={formData.observaciones} className="border p-2" />
               <input type="file" onChange={handleImage} />
               <button onClick={handleSubmit} className="bg-amber-700 text-white py-2 rounded">
-                Guardar
+                {editingId ? "Actualizar" : "Guardar"}
               </button>
             </div>
           )}
-
-          <div className="bg-amber-100 p-4 rounded mb-6 flex gap-2 flex-wrap">
-            <select onChange={e => setOrderField(e.target.value)} className="border p-2">
-              <option value="">Ordenar por</option>
-              <option value="nombre">Nombre</option>
-              <option value="tipo">Tipo</option>
-              <option value="puntuacion">Puntuación</option>
-            </select>
-
-            <select onChange={e => setOrderDirection(e.target.value)} className="border p-2">
-              <option value="asc">Ascendente</option>
-              <option value="desc">Descendente</option>
-            </select>
-
-            <button
-              onClick={() => setFilteredBeers(applyOrdering(filteredBeers))}
-              className="bg-amber-700 text-white px-4 py-2 rounded"
-            >
-              Aplicar orden
-            </button>
-          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredBeers.map(b => (
@@ -202,22 +179,14 @@
                 <p>Tipo: {b.tipo}</p>
                 <p>Puntuación: ⭐ {b.puntuacion}</p>
                 {b.observaciones && <p className="italic mt-2">"{b.observaciones}"</p>}
-              <div className="mt-3 flex gap-2">
-  <button
-    onClick={() => handleEdit(b)}
-    className="bg-blue-500 text-white px-3 py-1 rounded"
-  >
-    Editar
-  </button>
-
-  <button
-    onClick={() => handleDelete(b.id)}
-    className="bg-red-500 text-white px-3 py-1 rounded"
-  >
-    Eliminar
-  </button>
-</div>
-
+                <div className="mt-3 flex gap-2">
+                  <button onClick={() => handleEdit(b)} className="bg-blue-500 text-white px-3 py-1 rounded">
+                    Editar
+                  </button>
+                  <button onClick={() => handleDelete(b.id)} className="bg-red-500 text-white px-3 py-1 rounded">
+                    Eliminar
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -229,5 +198,7 @@
   </script>
 </body>
 </html>
+
+
 
 
